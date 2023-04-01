@@ -12,12 +12,16 @@ void swap(int *array, int p, int q){
     array[q] = temp;
 }
 
-void sort(int *array, int low, int high){
-
+void sort(int array[], int low, int high){
     //only keep sorting if not done yet obviously
     if(high > low){
         //first pick a pivot
         int pivotIndex = (rand() % (high - low)) + low;
+
+        int indexes[3] = {low, high, pivotIndex};
+        std::string tags[3] = {"low", "high", "pivot"};
+        av_draw(array, ARRAY_SIZE, indexes, tags, 3);
+        std::cout << "In the sort\n";
         int count = -1; //starting at -1 becouse the next step will double count
 
         for(int i = low; i <= high; i++){
@@ -44,6 +48,9 @@ void sort(int *array, int low, int high){
                     j--;
                     swapCheck = false;
                 }
+                if(array[i] == array[pivotIndex] && array[pivotIndex] == array[j]){
+                    i++;
+                }
                 if(swapCheck){
                     swap(array, i, j);
                 }
@@ -61,7 +68,6 @@ int main(int argc, char* argv[]){
     //prep
     int array[ARRAY_SIZE];
     srand(time(nullptr));
-
     for(int i = 0; i < ARRAY_SIZE; i++){
         array[i] = rand() % 30;
     }
@@ -69,17 +75,12 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < ARRAY_SIZE; i++){
         std::cout << array[i] << " | ";
     }
-
-    draw(array, ARRAY_SIZE, {3, "p"}, {1, "l"}, {7, "h"});
-
     sort(array, 0, ARRAY_SIZE - 1);
     std::cout << std::endl;
-
-    draw(array, ARRAY_SIZE, {3, "p"}, {1, "l"}, {7, "h"});
 
     for(int i = 0; i < ARRAY_SIZE; i++){
         std::cout << array[i] << " | ";
     }
-
+    av_end(array, ARRAY_SIZE);
     return 0;
 }
