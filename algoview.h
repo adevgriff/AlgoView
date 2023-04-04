@@ -1,6 +1,6 @@
 #ifndef ALGO_VIEW_H
 #define ALGO_VIEW_H
-#include "tigr.h"
+#include "raylib.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,8 @@ extern "C"{
 #define DEFAULT_WINDOW_HEIGHT 800
 #define DEFAULT_WINDOW_WIDTH 1000
 
-static const TPixel AV_COLORS[8] = {COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8};
+
+static const rdr::Color AV_COLORS[8] = {COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8};
 
 static void inline av_cleanup();
 
@@ -65,7 +66,7 @@ static void inline av_draw(int array[], int arraySize, int markedIndexes[] = NUL
     tigrClear(av_view->screen, BACKGROUNDCOLOR);
     tigrRect(av_view->screen, 0, windowHeight - keyboxHeight, (int)windowWidth, (int)keyboxHeight, tigrRGB(0xFF, 0xFF, 0xFF));
     for(int i = 0; i < arraySize; i++){
-        TPixel c = tigrRGB(0x42, 0xFF, 0xFF);
+        rdr::Color c = tigrRGB(0x42, 0xFF, 0xFF);
         for(int x = 0; x < markedSize; x++){
             if(i == markedIndexes[x])
                 c = AV_COLORS[x];
@@ -86,7 +87,7 @@ static void inline av_end(int array[], int arraySize){
     tigrClear(av_view->screen, BACKGROUNDCOLOR);
     tigrRect(av_view->screen, 0, av_view->windowHeight - av_view->keyboxHeight, (int)av_view->windowWidth, (int)av_view->keyboxHeight, tigrRGB(0xFF, 0xFF, 0xFF));
     for(int i = 0; i < arraySize; i++){
-        TPixel c = tigrRGB(0x42, 0xFF, 0xFF);
+        rdr::Color c = tigrRGB(0x42, 0xFF, 0xFF);
         tigrFillRect(av_view->screen, width * i, av_view->windowHeight - av_view->keyboxHeight - 10*array[i], width, 10*array[i], c);
     }
     bool keyDown = false;
