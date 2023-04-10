@@ -1300,7 +1300,7 @@ static void dynamic(State* s) {
     ndist = 1 + bits(s, 5);
     nlen = 4 + bits(s, 4);
     for (n = 0; n < nlen; n++)
-        lenlens[order[n]] = (unsigned char)bits(s, 3);
+        lenlens[(int)order[n]] = (unsigned char)bits(s, 3);
 
     // Build the tree for decoding code lengths.
     s->tlen = build(s, s->lencodes, lenlens, 19);
@@ -4870,7 +4870,7 @@ static void tigrProcessInput(TigrInternal* win, int winWidth, int winHeight) {
 
     XEvent event;
     while (XCheckTypedWindowEvent(win->dpy, win->win, ClientMessage, &event)) {
-        if (event.xclient.data.l[0] == wmDeleteMessage) {
+        if ((long unsigned int)event.xclient.data.l[0] == wmDeleteMessage) {
             glXMakeCurrent(win->dpy, None, NULL);
             glXDestroyContext(win->dpy, win->glc);
             XDestroyWindow(win->dpy, win->win);

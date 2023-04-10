@@ -4,7 +4,7 @@
 #include "algoview.h"
 #include "tigr.h"
 
-#define ARRAY_SIZE 20
+#define ARRAY_SIZE 50
 
 void swap(int *array, int p, int q){
     int temp = array[p];
