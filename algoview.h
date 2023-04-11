@@ -68,7 +68,7 @@ static void av_appendHistory(int array[], int arraySize, int markedSize, int mar
         av_view->currentSize = av_view->currentSize+1;
 }
 
-static void av_drawArrayUtility(int array[], int arraySize, int markedSize, int markedIndexes[], std::string indexAlias[]){
+static void av_drawArrayUtility(int array[], int arraySize, int markedSize = 0, int markedIndexes[] = NULL, std::string indexAlias[] = NULL){
     //calculating variables that are usful for drawing the array
     int width = av_view->windowWidth/arraySize;
     tigrClear(av_view->screen, BACKGROUNDCOLOR);
@@ -141,6 +141,12 @@ static void inline av_draw(int array[], int arraySize, int markedIndexes[] = NUL
 }
 
 static void inline av_end(int array[], int arraySize){
+    if(av_view->currentSize == av_view->historySize)
+    {
+        av_view->historySize += 100;
+        av_view->history = (AV_HistoryItem*)realloc(av_view->history, av_view->historySize * sizeof(AV_HistoryItem));
+    }
+    av_appendHistory(array, arraySize, 0, NULL, NULL);
     //calculating variables that are usful for drawing the array
     int width = av_view->windowWidth/arraySize;
     tigrClear(av_view->screen, BACKGROUNDCOLOR);
@@ -149,15 +155,28 @@ static void inline av_end(int array[], int arraySize){
         TPixel c = tigrRGB(0x42, 0xFF, 0xFF);
         tigrFillRect(av_view->screen, width * i, av_view->windowHeight - av_view->keyboxHeight - 10*array[i], width, 10*array[i], c);
     }
-    bool keyDown = false;
-    while(!keyDown){
-        keyDown = tigrKeyDown(av_view->screen, 'D');
+    int currentView = av_view->currentSize - 1;
+    av_drawArrayUtility(array, arraySize);
+    bool nextItteration = false;
+    while(!nextItteration){
+        if(tigrKeyDown(av_view->screen, 'D')){
+            nextItteration = currentView == av_view->currentSize - 1;
+            if(!nextItteration){
+                currentView += 1;
+                av_drawArrayUtility(av_view->history[currentView].array, av_view->history[currentView].arraySize, av_view->history[currentView].markedSize, av_view->history[currentView].markedIndexes, av_view->history[currentView].indexAliases);
+            }
+        }
+        else if(tigrKeyDown(av_view->screen, 'A') && currentView > 0){
+            currentView -= 1;
+                av_drawArrayUtility(av_view->history[currentView].array, av_view->history[currentView].arraySize, av_view->history[currentView].markedSize, av_view->history[currentView].markedIndexes, av_view->history[currentView].indexAliases);
+        }
         tigrUpdate(av_view->screen);
     }
 }
 
 /*Cleanup function should be called atexit() so student does not have to worry about cleanup*/
 static void inline av_cleanup(){
+    // need to add saving file to cleanup
     tigrFree(av_view->screen);
     for(int i = 0; i < av_view->currentSize; i++){
         free(av_view->history[i].array);
