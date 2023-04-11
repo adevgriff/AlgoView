@@ -35,18 +35,38 @@ static const TPixel AV_COLORS[8] = {COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLO
 
 static void inline av_cleanup();
 
+struct AV_HistoryItem{
+    int *array;
+    int arraySize;
+    int *markedIndexes;
+    std::string *indexAliases;
+    int markedSize;
+};
+
 /*Define algoView Object singleton for the state machine*/
 struct AlgoView{
     unsigned int windowWidth;
     unsigned int windowHeight;
     unsigned int keyboxHeight;
     Tigr *screen = NULL;
-    int **history;
+    AV_HistoryItem *history;
     int historySize;
     int currentSize;
 };
 
 static struct AlgoView* av_view;
+
+static void av_appendHistory(int array[], int arraySize, int markedSize, int markedIndexes[], std::string indexAlias[]){
+        av_view->history[av_view->currentSize].array = (int*)malloc(sizeof(int) * arraySize);
+        memcpy(av_view->history[av_view->currentSize].array, array, arraySize * sizeof(int));
+        av_view->history[av_view->currentSize].arraySize = arraySize;
+        av_view->history[av_view->currentSize].indexAliases = (std::string*)malloc(sizeof(std::string) * markedSize);
+        memcpy(av_view->history[av_view->currentSize].indexAliases, indexAlias, markedSize * sizeof(std::string));
+        av_view->history[av_view->currentSize].markedIndexes = (int*)malloc(sizeof(int) * markedSize);
+        memcpy(av_view->history[av_view->currentSize].markedIndexes, markedIndexes, sizeof(int) * markedSize);
+        av_view->history[av_view->currentSize].markedSize = markedSize;
+        av_view->currentSize = av_view->currentSize+1;
+}
 
 static void av_drawArrayUtility(int array[], int arraySize, int markedSize, int markedIndexes[], std::string indexAlias[]){
     //calculating variables that are usful for drawing the array
@@ -82,20 +102,24 @@ static void inline av_draw(int array[], int arraySize, int markedIndexes[] = NUL
         av_view->windowWidth = windowWidth;
         av_view->keyboxHeight = keyboxHeight;
         av_view->historySize = DEFAULT_HISTORY_SIZE;
-        av_view->history = (int**)malloc(sizeof(int*) * av_view->historySize);
+        av_view->history = (struct AV_HistoryItem*)malloc(sizeof(AV_HistoryItem) * av_view->historySize);
         av_view->currentSize = 1;
-        av_view->history[0] = (int*)malloc(sizeof(int) * arraySize);
-        memcpy(av_view->history[0], array, arraySize * sizeof(int));
+        av_view->history[0].array = (int*)malloc(sizeof(int) * arraySize);
+        memcpy(av_view->history[0].array, array, arraySize * sizeof(int));
+        av_view->history[0].arraySize = arraySize;
+        av_view->history[0].indexAliases = (std::string*)malloc(sizeof(std::string) * markedSize);
+        memcpy(av_view->history[0].indexAliases, indexAlias, markedSize * sizeof(std::string));
+        av_view->history[0].markedIndexes = (int*)malloc(sizeof(int) * markedSize);
+        memcpy(av_view->history[0].markedIndexes, markedIndexes, sizeof(int) * markedSize);
+        av_view->history[0].markedSize = markedSize;
     }
     else{
         if(av_view->currentSize == av_view->historySize)
         {
             av_view->historySize += 100;
-            av_view->history = (int**)realloc(av_view->history, av_view->historySize * sizeof(int*));
+            av_view->history = (AV_HistoryItem*)realloc(av_view->history, av_view->historySize * sizeof(AV_HistoryItem));
         }
-        av_view->history[av_view->currentSize] = (int*)malloc(sizeof(int) * arraySize);
-        memcpy(av_view->history[av_view->currentSize], array, arraySize * sizeof(int));
-        av_view->currentSize = av_view->currentSize+1;
+        av_appendHistory(array, arraySize, markedSize, markedIndexes, indexAlias);
     }
     int currentView = av_view->currentSize - 1;
     av_drawArrayUtility(array, arraySize, markedSize, markedIndexes, indexAlias);
@@ -105,12 +129,12 @@ static void inline av_draw(int array[], int arraySize, int markedIndexes[] = NUL
             nextItteration = currentView == av_view->currentSize - 1;
             if(!nextItteration){
                 currentView += 1;
-                av_drawArrayUtility(av_view->history[currentView], arraySize, markedSize, markedIndexes, indexAlias);
+                av_drawArrayUtility(av_view->history[currentView].array, av_view->history[currentView].arraySize, av_view->history[currentView].markedSize, av_view->history[currentView].markedIndexes, av_view->history[currentView].indexAliases);
             }
         }
         else if(tigrKeyDown(av_view->screen, 'A') && currentView > 0){
             currentView -= 1;
-            av_drawArrayUtility(av_view->history[currentView], arraySize, markedSize, markedIndexes, indexAlias);
+                av_drawArrayUtility(av_view->history[currentView].array, av_view->history[currentView].arraySize, av_view->history[currentView].markedSize, av_view->history[currentView].markedIndexes, av_view->history[currentView].indexAliases);
         }
         tigrUpdate(av_view->screen);
     }
@@ -136,7 +160,9 @@ static void inline av_end(int array[], int arraySize){
 static void inline av_cleanup(){
     tigrFree(av_view->screen);
     for(int i = 0; i < av_view->currentSize; i++){
-        free(av_view->history[i]);
+        free(av_view->history[i].array);
+        free(av_view->history[i].indexAliases);
+        free(av_view->history[i].markedIndexes);
     }
     free(av_view->history);
     free(av_view);
