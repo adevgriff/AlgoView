@@ -19,7 +19,10 @@ void sort(int array[], int low, int high){
         int pivotIndex = (rand() % (high - low)) + low;
 
         int indexes[3] = {low, high, pivotIndex};
-        std::string tags[3] = {"low", "high", "pivot"};
+        const char *tags[3];
+        tags[0] = "low";
+        tags[1] = "high";
+        tags[2] = "pivot";
         av_draw(array, ARRAY_SIZE, indexes, tags, 3);
         std::cout << "In the sort\n";
         int count = -1; //starting at -1 becouse the next step will double count
