@@ -1,30 +1,17 @@
 #ifndef ALGO_VIEW_H
 #define ALGO_VIEW_H
 #include "tigr.h"
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-
-
-#ifdef __cplusplus
-extern "C"{
-#endif
+#include <stdbool.h>
 
 /*Just a set of decently visiable colors*/
 //could use some looking over to make sure it will
 //be accessable for color blind students
-#define BACKGROUNDCOLOR tigrRGB(0x34, 0x80, 0x9e)
-#define BARCOLOR tigrRGB(0xb6, 0xb9, 0xba)
-#define COLOR1 tigrRGB(0x57, 0x04, 0x63)
-#define COLOR2 tigrRGB(0xe6, 0x70, 0xc4)
-#define COLOR3 tigrRGB(0x78, 0x0b, 0x05)
-#define COLOR4 tigrRGB(0xf0, 0x25, 0x1a)
-#define COLOR5 tigrRGB(0x01, 0x52, 0x08)
-#define COLOR6 tigrRGB(0x41, 0xba, 0x4b)
-#define COLOR7 tigrRGB(0xf7, 0xe7, 0x02)
-#define COLOR8 tigrRGB(0xcf, 0x67, 0x06)
+TPixel BACKGROUNDCOLOR;
+TPixel BARCOLOR;
 
 #define DEFAULT_KEYBOX_HEIGHT 25 //Height of the box that shows which color is which variable
 
@@ -34,17 +21,23 @@ extern "C"{
 #define DEFAULT_HISTORY_SIZE 100
 #define MAX_ALIAS_LENGTH 32
 
-static const TPixel AV_COLORS[8] = {COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8};
+//serialization format
+const char* HISTORY_FORMAT_OUT = "(%s, %d, %c, %f, %e)\n";
 
-static void inline av_cleanup();
+TPixel AV_COLORS[8];
 
-struct AV_HistoryItem {
+static void av_cleanup();
+
+static void av_serializeAndSave(const char* filename);
+static void av_serializeAndSaveDefaultFile();
+
+typedef struct{
     int *array;
     int arraySize;
     int *markedIndexes;
     const char **indexAliases;
     int markedSize;
-};
+}AV_HistoryItem;
 
 /*Define algoView Object singleton for the state machine*/
 struct AlgoView{
@@ -58,6 +51,19 @@ struct AlgoView{
 };
 
 static struct AlgoView* av_view;
+
+static void av_initialization(){
+    BACKGROUNDCOLOR = tigrRGB(0x34, 0x80, 0x9e);
+    BARCOLOR = tigrRGB(0xb6, 0xb9, 0xba);
+    AV_COLORS[0] = tigrRGB(0x57, 0x04, 0x63);
+    AV_COLORS[1] = tigrRGB(0xe6, 0x70, 0xc4);
+    AV_COLORS[2] = tigrRGB(0x78, 0x0b, 0x05);
+    AV_COLORS[3] = tigrRGB(0xf0, 0x25, 0x1a);
+    AV_COLORS[4] = tigrRGB(0x01, 0x52, 0x08);
+    AV_COLORS[5] = tigrRGB(0x41, 0xba, 0x4b);
+    AV_COLORS[6] = tigrRGB(0xf7, 0xe7, 0x02);
+    AV_COLORS[7] = tigrRGB(0xcf, 0x67, 0x06);
+}
 
 /**
  * @brief Appends a new history item to the av_view.
@@ -175,6 +181,7 @@ static void av_drawArrayUtilityWithDefaults(int array[], int arraySize) {
 static void av_drawWithSizes(int array[], int arraySize, int markedIndexes[], const char * indexAlias[], int markedSize, unsigned int keyboxHeight, unsigned int windowWidth, unsigned int windowHeight) {
     //Singelton design pattern for av_view holds state information for drawing algorithm
         if (av_view == NULL) {
+            av_initialization();
             av_view = (struct AlgoView *)malloc(sizeof(struct AlgoView));
             av_view->screen = tigrWindow(windowWidth, windowHeight, "AlgoView", TIGR_FIXED);
             atexit(av_cleanup);
@@ -182,7 +189,7 @@ static void av_drawWithSizes(int array[], int arraySize, int markedIndexes[], co
             av_view->windowWidth = windowWidth;
             av_view->keyboxHeight = keyboxHeight;
             av_view->historySize = DEFAULT_HISTORY_SIZE;
-            av_view->history = (struct AV_HistoryItem *)malloc(sizeof(struct AV_HistoryItem) * av_view->historySize);
+            av_view->history = (AV_HistoryItem *)malloc(sizeof(AV_HistoryItem) * av_view->historySize);
             av_view->currentSize = 1;
             av_view->history[0].array = (int *)malloc(sizeof(int) * arraySize);
             memcpy(av_view->history[0].array, array, arraySize * sizeof(int));
@@ -197,7 +204,7 @@ static void av_drawWithSizes(int array[], int arraySize, int markedIndexes[], co
         } else {
             if (av_view->currentSize == av_view->historySize) {
                 av_view->historySize += 100;
-                av_view->history = (struct AV_HistoryItem *)realloc(av_view->history, av_view->historySize * sizeof(struct AV_HistoryItem));
+                av_view->history = (AV_HistoryItem *)realloc(av_view->history, av_view->historySize * sizeof(AV_HistoryItem));
             }
             av_appendHistory(array, arraySize, markedSize, markedIndexes, (const char **)indexAlias);
         }
@@ -253,7 +260,7 @@ static void av_draw(int array[], int arraySize, int markedIndexes[], const char 
 static void av_end(int array[], int arraySize) {
     if (av_view->currentSize == av_view->historySize) {
         av_view->historySize += 100;
-        av_view->history = (struct AV_HistoryItem *)realloc(av_view->history, av_view->historySize * sizeof(struct AV_HistoryItem));
+        av_view->history = (AV_HistoryItem *)realloc(av_view->history, av_view->historySize * sizeof(AV_HistoryItem));
     }
     av_appendHistory(array, arraySize, 0, NULL, NULL);
     //calculating variables that are usful for drawing the array
@@ -290,6 +297,7 @@ static void av_end(int array[], int arraySize) {
  * It takes care of freeing memory allocated for the AlgoView and its associated resources.
  */
 static void av_cleanup() {
+    av_serializeAndSaveDefaultFile();
     if (av_view != NULL) {
         // Free the Tigr screen resource
         tigrFree(av_view->screen);
@@ -311,10 +319,52 @@ static void av_cleanup() {
     }
 }
 
-//function to signal last draw call that is going to happen essentailly used to signify that the algorithm being tested has run its course
+/**
+ * @brief Function to serialize and save history for later viewing
+ *
+ * This function should be called by the user with a proveded filename
+ * @param filename const char* representing the name of the serialize history file to save
+ */
+static void av_serializeAndSave(const char* filename){
+    FILE* file;
+    file = fopen(filename, "wb");
+    if(file != NULL){
+        fwrite(&av_view->historySize, sizeof(int), 1, file);
+        fwrite(&av_view->currentSize, sizeof(int), 1, file);
 
-#ifdef __cplusplus
+        for (int i = 0; i < av_view->currentSize; i++) {
+            AV_HistoryItem *item = &av_view->history[i];
+
+            fwrite(&item->arraySize, sizeof(int), 1, file);
+            fwrite(&item->markedSize, sizeof(int), 1, file);
+
+            fwrite(item->array, sizeof(int), item->arraySize, file);
+            fwrite(item->markedIndexes, sizeof(int), item->markedSize, file);
+
+            for (int j = 0; j < item->markedSize; j++) {
+                int alias_len = strlen(item->indexAliases[j]) + 1;
+                fwrite(&alias_len, sizeof(int), 1, file);
+                fwrite(item->indexAliases[j], sizeof(char), alias_len, file);
+            }
+
+        }
+        fclose(file);
+
+    }
+    else{
+        printf("Issues opening the file for saving serialized history so the file will not be saved.");
+    }
+    return;
 }
-#endif
+
+/**
+ * @brief Function to serialize and save history for later viewing
+ *
+ * This function should be called at exit so the users history is always saved even when the program
+ * crashes ahead of time. This version will assume a filename of serializedFile.dat
+ */
+static void av_serializeAndSaveDefaultFile(){
+    av_serializeAndSave("serializedFile.dat");
+}
 
 #endif

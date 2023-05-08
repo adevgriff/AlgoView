@@ -24,7 +24,6 @@ void sort(int array[], int low, int high){
         tags[1] = "high";
         tags[2] = "pivot";
         av_draw(array, ARRAY_SIZE, indexes, tags, 3);
-        std::cout << "In the sort\n";
         int count = -1; //starting at -1 becouse the next step will double count
 
         for(int i = low; i <= high; i++){
